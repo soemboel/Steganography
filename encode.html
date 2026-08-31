@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Encode Pesanmu!</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="encode.html" class="brand"><span class="leaf">&#127807;</span> Encode Image</a>
+  <div class="nav">
+    <a href="encode.html" class="active">Encode</a>
+    <a href="decode.html">Decode</a>
+  </div>
+</div>
+
+<div class="hero">
+  <h1>Hide a message <span class="accent">in plain sight</span></h1>
+  <p>Upload a photo, write your secret, download an image nobody will suspect.</p>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <div class="step-label"><span class="step-num">1</span> Upload an image</div>
+    <p class="step-hint">PNG, JPG, or JPEG (larger images can hide longer messages.)</p>
+
+    <div class="dropzone" id="dropzone">
+      <div class="icon">&#128247;</div>
+      <div class="main-text">Click to upload or drag and drop</div>
+      <div class="sub-text">PNG, JPG, JPEG</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/png, image/jpeg" style="display:none;">
+
+    <div class="preview-wrap" id="previewWrap">
+      <img id="previewImg" alt="Uploaded preview">
+      <div class="file-meta">
+        <span id="fileMeta"></span>
+        <button class="remove-btn" id="removeBtn">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step-label"><span class="step-num">2</span> Your secret message</div>
+    <p class="step-hint">This gets tucked into the pixels invisible to the eye.</p>
+    <textarea id="msgInput" placeholder="I love u">I love u</textarea>
+    <div class="char-count" id="charCount">8 characters</div>
+    <div class="error-text" id="errorText"></div>
+  </div>
+
+  <div class="card">
+    <div class="step-label"><span class="step-num">3</span> Encode and download</div>
+    <p class="step-hint">Your browser does all the work. Nothing is uploaded anywhere.</p>
+    <button class="btn-primary" id="encodeBtn" disabled>&#11015; Encode &amp; download image</button>
+    <div class="footnote">Downloads as PNG (lossless required for hidden data to survive).</div>
+
+    <div class="info-box">
+      <span class="i-icon">&#127807;</span>
+      <span>Uses least-significant-bit (LSB) encoding: only the last bit of each color channel changes, shifting color by at most 1 out of 255. invisible to the human eye.</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="made-with">Runs entirely in your browser · no images ever leave your device</div>
+
+<canvas id="workCanvas" style="display:none;"></canvas>
+
+<script src="script.js"></script>
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const previewWrap = document.getElementById('previewWrap');
+  const previewImg = document.getElementById('previewImg');
+  const fileMeta = document.getElementById('fileMeta');
+  const removeBtn = document.getElementById('removeBtn');
+  const msgInput = document.getElementById('msgInput');
+  const charCount = document.getElementById('charCount');
+  const errorText = document.getElementById('errorText');
+  const encodeBtn = document.getElementById('encodeBtn');
+  const workCanvas = document.getElementById('workCanvas');
+
+  let currentImage = null;
+  let currentFile = null;
+
+  setupDropzone(dropzone, fileInput, handleFile);
+
+  function handleFile(file) {
+    loadImageFile(file, (img, f) => {
+      currentImage = img;
+      currentFile = f;
+      previewImg.src = img.src;
+      fileMeta.textContent = `${f.name} · ${img.width}×${img.height} · ${formatBytes(f.size)}`;
+      previewWrap.classList.add('show');
+      dropzone.style.display = 'none';
+      validate();
+    });
+  }
+
+  removeBtn.addEventListener('click', () => {
+    currentImage = null;
+    currentFile = null;
+    fileInput.value = '';
+    previewWrap.classList.remove('show');
+    dropzone.style.display = 'block';
+    validate();
+  });
+
+  msgInput.addEventListener('input', validate);
+
+  function validate() {
+    const msg = msgInput.value;
+    charCount.textContent = `${msg.length} character${msg.length === 1 ? '' : 's'}`;
+    errorText.classList.remove('show');
+    errorText.textContent = '';
+
+    if (!currentImage) {
+      encodeBtn.disabled = true;
+      return;
+    }
+    const capacity = capacityForImage(currentImage.width, currentImage.height);
+    if (msg.length + 1 > capacity) {
+      errorText.textContent = `Message too long — this image can hold about ${capacity} characters.`;
+      errorText.classList.add('show');
+      charCount.classList.add('warn');
+      encodeBtn.disabled = true;
+      return;
+    }
+    charCount.classList.remove('warn');
+    encodeBtn.disabled = msg.length === 0;
+  }
+
+  encodeBtn.addEventListener('click', () => {
+    if (!currentImage) return;
+    const msg = msgInput.value;
+
+    workCanvas.width = currentImage.width;
+    workCanvas.height = currentImage.height;
+    const ctx = workCanvas.getContext('2d');
+    ctx.drawImage(currentImage, 0, 0);
+
+    let imageData = ctx.getImageData(0, 0, workCanvas.width, workCanvas.height);
+    try {
+      imageData = encodeMessageIntoImageData(imageData, msg);
+    } catch (e) {
+      errorText.textContent = e.message;
+      errorText.classList.add('show');
+      return;
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    workCanvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const baseName = currentFile ? currentFile.name.replace(/\.[^.]+$/, '') : 'image';
+      a.download = `${baseName}-encoded.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  });
+</script>
+
+<script src="cyber.js"></script>
+
+</body>
+</html>

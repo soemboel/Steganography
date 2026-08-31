@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mau lihat pesan?</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="encode.html" class="brand"><span class="leaf">&#127807;</span> Buka Pesan</a>
+  <div class="nav">
+    <a href="encode.html">Encode</a>
+    <a href="decode.html" class="active">Decode</a>
+  </div>
+</div>
+
+<div class="hero">
+  <h1>Reveal the <span class="accent">hidden message</span></h1>
+  <p>Upload an image encoded on the previous page to read what's tucked inside.</p>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <div class="step-label"><span class="step-num">1</span> Upload the encoded image</div>
+    <p class="step-hint">Must be the original PNG that was downloaded. Re-saving or compressing it will destroy the hidden message.</p>
+
+    <div class="dropzone" id="dropzone">
+      <div class="icon">&#128274;</div>
+      <div class="main-text">Click to upload or drag and drop</div>
+      <div class="sub-text">PNG only (must be lossless)</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/png" style="display:none;">
+
+    <div class="preview-wrap" id="previewWrap">
+      <img id="previewImg" alt="Uploaded preview">
+      <div class="file-meta">
+        <span id="fileMeta"></span>
+        <button class="remove-btn" id="removeBtn">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step-label"><span class="step-num">2</span> Decode</div>
+    <button class="btn-primary" id="decodeBtn" disabled>&#128269; Reveal hidden message</button>
+
+    <div class="step-label" style="margin-top:20px;">Decoded message</div>
+    <div class="result-box" id="resultBox">Nothing decoded yet.</div>
+
+    <div class="info-box">
+      <span class="i-icon">&#127807;</span>
+      <span>If the result looks like garbage, the image may not contain a hidden message, or it was re-compressed (e.g. saved as JPG) after encoding, which destroys the hidden message.</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="made-with">Runs entirely in your browser · no images ever leave your device</div>
+
+<canvas id="workCanvas" style="display:none;"></canvas>
+
+<script src="script.js"></script>
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const previewWrap = document.getElementById('previewWrap');
+  const previewImg = document.getElementById('previewImg');
+  const fileMeta = document.getElementById('fileMeta');
+  const removeBtn = document.getElementById('removeBtn');
+  const decodeBtn = document.getElementById('decodeBtn');
+  const resultBox = document.getElementById('resultBox');
+  const workCanvas = document.getElementById('workCanvas');
+
+  let currentImage = null;
+
+  setupDropzone(dropzone, fileInput, handleFile);
+
+  function handleFile(file) {
+    loadImageFile(file, (img, f) => {
+      currentImage = img;
+      previewImg.src = img.src;
+      fileMeta.textContent = `${f.name} · ${img.width}×${img.height} · ${formatBytes(f.size)}`;
+      previewWrap.classList.add('show');
+      dropzone.style.display = 'none';
+      decodeBtn.disabled = false;
+      resultBox.textContent = 'Nothing decoded yet.';
+      resultBox.classList.remove('success');
+    });
+  }
+
+  removeBtn.addEventListener('click', () => {
+    currentImage = null;
+    fileInput.value = '';
+    previewWrap.classList.remove('show');
+    dropzone.style.display = 'block';
+    decodeBtn.disabled = true;
+    resultBox.textContent = 'Nothing decoded yet.';
+    resultBox.classList.remove('success');
+  });
+
+  decodeBtn.addEventListener('click', () => {
+    if (!currentImage) return;
+    workCanvas.width = currentImage.width;
+    workCanvas.height = currentImage.height;
+    const ctx = workCanvas.getContext('2d');
+    ctx.drawImage(currentImage, 0, 0);
+    const imageData = ctx.getImageData(0, 0, workCanvas.width, workCanvas.height);
+    const msg = decodeMessageFromImageData(imageData);
+
+    if (msg) {
+      resultBox.textContent = msg;
+      resultBox.classList.add('success');
+    } else {
+      resultBox.textContent = 'No hidden message found in this image.';
+      resultBox.classList.remove('success');
+    }
+  });
+</script>
+
+<script src="cyber.js"></script>
+
+</body>
+</html>
