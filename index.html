@@ -4,15 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Encode Pesanmu!</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
 <link rel="stylesheet" href="style.css">
+<script>
+  (function() {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+      document.documentElement.classList.add('dark-mode');
+    }
+  })();
+</script>
 </head>
 <body>
 
 <div class="topbar">
-  <a href="encode.html" class="brand"><span class="leaf">&#127807;</span> Encode Image</a>
-  <div class="nav">
-    <a href="encode.html" class="active">Encode</a>
-    <a href="decode.html">Decode</a>
+  <a href="index.html" class="brand"><span class="leaf">&#127807;</span> Encode Image</a>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="nav">
+      <a href="index.html" class="active">Encode</a>
+      <a href="decode.html">Decode</a>
+    </div>
+    <button id="themeToggle" class="theme-toggle-btn" title="Toggle theme">
+      <span class="sun-icon">☀️</span>
+      <span class="moon-icon">🌙</span>
+    </button>
   </div>
 </div>
 
